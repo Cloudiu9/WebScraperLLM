@@ -1,57 +1,72 @@
-# function that takes an URL and returns all content from it
-
+# Import necessary libraries for web scraping and HTML parsing
 import selenium.webdriver as webdriver
 from selenium.webdriver.chrome.service import Service
-from bs4 import BeautifulSoup # html parser
+from bs4 import BeautifulSoup  # HTML parser
 
+# Function that takes a website URL and returns its HTML content
 def scrape_website(website):
-    print("Launching chrome browser...")
-
+    print("Launching chrome browser...")  # Log the browser launch
+    
+    # Path to the ChromeDriver executable
     chrome_driver_path = "./chromedriver.exe"
+    
+    # Set Chrome options (default, can be customized later if needed)
     options = webdriver.ChromeOptions()
+    
+    # Initialize the Chrome WebDriver using the specified ChromeDriver path and options
     driver = webdriver.Chrome(service=Service(chrome_driver_path), options=options)
 
     try:
-        # using driver to go to website --> grab
+        # Navigate to the website URL using the Chrome driver
         driver.get(website)
-        print("Page loaded...")
+        print("Page loaded...")  # Log when the page is loaded successfully
+        
+        # Get the HTML source of the loaded page
         html = driver.page_source
-
+        
+        # Return the HTML content of the webpage
         return html
     finally:
+        # Ensure that the browser is closed even if an error occurs
         driver.quit()
 
-# we need to remove css / js from scraper, so the LLM has an easier task
-
+# Function to extract only the <body> content from the raw HTML
 def extract_body_content(html_content):
+    # Parse the HTML content using BeautifulSoup
     soup = BeautifulSoup(html_content, "html.parser")
+    
+    # Find the <body> tag and extract its content
     body_content = soup.body
+    
+    # If the <body> content exists, return it as a string; otherwise return an empty string
     if body_content:
         return str(body_content)
     return ""
 
-# look inside parsed content, remove <script> , <style> tags
+# Function to clean the extracted <body> content by removing <script> and <style> tags
 def clean_body_content(body_content):
+    # Parse the body content using BeautifulSoup
     soup = BeautifulSoup(body_content, "html.parser")
 
+    # Remove all <script> and <style> tags, as they are not needed for the LLM
     for script_or_style in soup(["script", "style"]):
-        script_or_style.extract()
+        script_or_style.extract()  # Extract and remove these tags
 
-    # get all text ==> separate it with a new line
+    # Get all the remaining text in the body, separating each element by a newline
     cleaned_content = soup.get_text(separator="\n")
 
-    # remove unnecessary \n content (empty strings)
-    # if \n is not separating anything ==> remove it
-    cleaned_content = "\n".join(line.strip() for line in cleaned_content.splitlines() if line.strip())
+    # Strip extra whitespace and remove empty lines, keeping only meaningful text
+    cleaned_content = "\n".join(
+        line.strip() for line in cleaned_content.splitlines() if line.strip()
+    )
 
+    # Return the cleaned content, now free of scripts and styles
     return cleaned_content
 
-# we need to split the text into different batches of what the maximum
-# size of the LLM is (ex: 8000 characters token limit)
-
+# Function to split the cleaned content into chunks, respecting LLM input size limits
 def split_dom_content(dom_content, max_length=6000):
-    # grabs first 6000 characters ==> because of for loop, i is now 6000, goes to the next
-    # 6000 characters, repeats until we reach length of dom_content
+    # Split the content into smaller chunks based on the maximum allowed length (e.g., 6000 characters)
     return [
-        dom_content[i: i+max_length] for i in range(0, len(dom_content), max_length)
+        dom_content[i: i + max_length]  # Get the substring from i to i+max_length
+        for i in range(0, len(dom_content), max_length)  # Iterate over the content in steps of max_length
     ]

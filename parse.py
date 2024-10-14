@@ -1,7 +1,8 @@
-from langchain_ollama import OllamaLLM # connect LLMs to python
-from langchain_core.prompts import ChatPromptTemplate
+# Import necessary components for integrating the Ollama LLM with Python
+from langchain_ollama import OllamaLLM  # Connects Large Language Models (LLMs) to Python
+from langchain_core.prompts import ChatPromptTemplate  # For creating prompts for the LLM
 
-# we need to give the LLM some additional details besides the parsed DOM so that it knows what to do 
+# Define a template for the LLM, providing instructions on how to extract information from the DOM content
 template = (
     "You are tasked with extracting specific information from the following text content: {dom_content}. "
     "Please follow these instructions carefully: \n\n"
@@ -11,22 +12,30 @@ template = (
     "4. **Direct Data Only:** Your output should contain only the data that is explicitly requested, with no other text."
 )
 
+# Initialize the LLM model using Ollama; specifying a model version (in this case, "llama3.2")
 model = OllamaLLM(model="llama3.2")
 
+# Function that interacts with the LLM to parse the DOM content in chunks based on the provided description
 def parse_with_ollama(dom_chunks, parse_description):
+    # Create a prompt using the defined template, which combines the DOM content and description
     prompt = ChatPromptTemplate.from_template(template)
 
-    # first prompt --> then model
+    # Create a processing chain: input (prompt) --> process (model)
     chain = prompt | model 
 
+    # Initialize a list to store parsed results from each chunk
     parsed_results = []
 
-    # pass all chunks into the LLM --> store into parsed_results
+    # Loop through each chunk of the DOM content and send it to the LLM for processing
     for i, chunk in enumerate(dom_chunks, start=1):
-        # calling LLM
+        # Call the LLM with the current chunk and the parsing instructions
         response = chain.invoke({"dom_content": chunk, "parse_description": parse_description})
 
+        # Log progress by showing which chunk is being processed
         print(f"Parsed batch {i} of {len(dom_chunks)}")
+
+        # Append the LLM's response to the parsed_results list
         parsed_results.append(response)
 
+    # Join the parsed results from all chunks into a single string and return it
     return "\n".join(parsed_results)
