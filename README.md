@@ -16,7 +16,6 @@ This project was developed following [this tutorial](https://www.youtube.com/wat
 - **Google Chrome** or **Firefox** browser installed
 - A Large Language Model, such as [Ollama](https://ollama.com/download/windows)
 - `chromedriver.exe` (included in the project or available via [ChromeDriver download](https://googlechromelabs.github.io/chrome-for-testing/#stable))
-  # OR
 - `geckodriver.exe`(included in the project or available via [GeckoDriver download](https://github.com/mozilla/geckodriver/releases))
 
 ## Installation
