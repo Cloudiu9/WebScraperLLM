@@ -12,8 +12,9 @@ template = (
     "4. **Direct Data Only:** Your output should contain only the data that is explicitly requested, with no other text."
 )
 
-# Initialize the LLM model using Ollama; specifying a model version (in this case, "llama3.2")
-model = OllamaLLM(model="llama3.2")
+# Initialize the LLM model using Ollama; specifying a model version, depending on the one installed from https://github.com/ollama/ollama
+# Ex: ollama run llama3.2 OR ollama run llama3.2:1b
+model = OllamaLLM(model="llama3.2:1b")
 
 # Function that interacts with the LLM to parse the DOM content in chunks based on the provided description
 def parse_with_ollama(dom_chunks, parse_description):

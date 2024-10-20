@@ -12,12 +12,18 @@ st.title("AI Web Scraper")
 # Create an input field for the user to enter the URL of the website to scrape
 url = st.text_input("Enter a website URL:")
 
-# Check if the "Scrape Site" button is clicked
-if(st.button("Scrape Site")):
-    st.write("Scraping the website")  # Display feedback when scraping starts
+# Add a selectbox for the user to choose the browser (Chrome or Firefox)
+browser_choice = st.selectbox(
+    "Select browser for scraping:",
+    ("Chrome", "Firefox")
+)
 
-    # Call the scrape_website function to get the raw HTML content of the website
-    result = scrape_website(url)
+# Check if the "Scrape Site" button is clicked
+if st.button("Scrape Site"):
+    st.write(f"Scraping the website using {browser_choice}...")  # Display feedback when scraping starts
+
+    # Call the scrape_website function to get the raw HTML content of the website, passing the browser choice
+    result = scrape_website(url, browser=browser_choice.lower())  # Lowercase to match the scrape.py function
 
     # Extract the <body> content from the HTML (removes headers, footers, etc.)
     body_content = extract_body_content(result)

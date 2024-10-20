@@ -1,23 +1,36 @@
-# Import necessary libraries for web scraping and HTML parsing
 import selenium.webdriver as webdriver
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from bs4 import BeautifulSoup  # HTML parser
 
 # Function that takes a website URL and returns its HTML content
-def scrape_website(website):
-    print("Launching chrome browser...")  # Log the browser launch
+def scrape_website(website, browser="chrome"):
+    # Choose the browser based on user input
+    if browser.lower() == "firefox":
+        print("Launching Firefox browser...")  # Log the browser launch
+        # Path to the GeckoDriver executable (for Firefox)
+        firefox_driver_path = "./geckodriver.exe"
+        
+        # Set Firefox options (default, can be customized later if needed)
+        options = webdriver.FirefoxOptions()
+        
+        # Initialize the Firefox WebDriver using the specified GeckoDriver path and options
+        driver = webdriver.Firefox(service=FirefoxService(firefox_driver_path), options=options)
     
-    # Path to the ChromeDriver executable
-    chrome_driver_path = "./chromedriver.exe"
-    
-    # Set Chrome options (default, can be customized later if needed)
-    options = webdriver.ChromeOptions()
-    
-    # Initialize the Chrome WebDriver using the specified ChromeDriver path and options
-    driver = webdriver.Chrome(service=Service(chrome_driver_path), options=options)
+    else:
+        print("Launching Chrome browser...")  # Log the browser launch
+        
+        # Path to the ChromeDriver executable
+        chrome_driver_path = "./chromedriver.exe"
+        
+        # Set Chrome options (default, can be customized later if needed)
+        options = webdriver.ChromeOptions()
+        
+        # Initialize the Chrome WebDriver using the specified ChromeDriver path and options
+        driver = webdriver.Chrome(service=ChromeService(chrome_driver_path), options=options)
 
     try:
-        # Navigate to the website URL using the Chrome driver
+        # Navigate to the website URL using the selected driver
         driver.get(website)
         print("Page loaded...")  # Log when the page is loaded successfully
         
