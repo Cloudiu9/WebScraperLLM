@@ -13,8 +13,11 @@ This project was developed following [this tutorial](https://www.youtube.com/wat
 ## Prerequisites
 
 - **Python 3.x**
-- **Google Chrome** browser installed
-- `chromedriver.exe` (included in the project or available via [ChromeDriver download](https://sites.google.com/a/chromium.org/chromedriver/))
+- **Google Chrome** or **Firefox** browser installed
+- A Large Language Model, such as [Ollama](https://ollama.com/download/windows)
+- `chromedriver.exe` (included in the project or available via [ChromeDriver download](https://googlechromelabs.github.io/chrome-for-testing/#stable))
+  # OR
+- `geckodriver.exe`(included in the project or available via [GeckoDriver download](https://github.com/mozilla/geckodriver/releases))
 
 ## Installation
 
@@ -34,8 +37,11 @@ This project was developed following [this tutorial](https://www.youtube.com/wat
 3. **Install the dependencies listed in requirements.txt**:
     ```bash
     pip install -r requirements.txt
-4. **Set up chromedriver.exe**:
-- Ensure that chromedriver.exe is in the project directory or added to your system's PATH.
+    
+4. **Set up chromedriver.exe and geckodriver.exe**:
+- Ensure that chromedriver.exe and geckodriver.exe are in the project directory or added to your system's PATH.
+
+5. **Download an [Ollama version](https://github.com/ollama/ollama)**
 
 ## Usage
 - Run the scraper using Streamlit:
