@@ -37,7 +37,7 @@ if st.button("Stop Scraping"):
 if st.button("Scrape Site"):
     st.write(f"Scraping the website using {browser_choice}...")  # Display feedback when scraping starts
 
-    # Step 1: Scrape all links from the main page
+    # Scrape all links from the main page
     st.write("Extracting links to individual transcripts...")
     article_links = scrape_all_links(url, browser=browser_choice.lower())  # Scrape all links
 
@@ -59,7 +59,7 @@ if st.button("Scrape Site"):
             transcript_data = scrape_individual_page(link, browser=browser_choice.lower())
 
             # Extract the title, summary, and content from the transcript_data
-            title = transcript_data.get("title", "No Title")  # Use get() to avoid KeyError
+            title = transcript_data.get("title", "No Title")
             summary = transcript_data.get("summary", "No Summary")
             content = transcript_data.get("content", "No Content")
 
@@ -105,8 +105,12 @@ if st.button("Scrape Site"):
 # This block checks if the content has been saved in the session
 if "dom_content" in st.session_state:
     st.write(f"DOM Content Length: {len(st.session_state.dom_content)}")  # Debug line
+
     # Input field for users to describe what specific information they want to extract
-    parse_description = st.text_area("Describe what you want to parse:")
+    parse_description = st.text_area(
+        "Describe what you want to parse:",
+        value="Extract details of each speech, including date, location, and main topics discussed, and organize them in a structured table format."
+    )
 
     # Check if the "Parse Content" button is clicked
     if st.button("Parse Content"):
@@ -122,3 +126,4 @@ if "dom_content" in st.session_state:
                 # Pass the DOM chunks and user-provided parse description to the LLM
                 result = parse_with_groq(dom_chunks, parse_description)
                 st.write(result)
+

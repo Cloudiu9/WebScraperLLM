@@ -1,8 +1,8 @@
 import os
 from groq import Groq
 import logging
-logging.basicConfig(level=logging.INFO)  # Configure logging level
 
+logging.basicConfig(level=logging.INFO)
 
 # Load the Groq API key from the environment variable
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -28,7 +28,6 @@ def parse_with_groq(dom_chunks, parse_description):
             )
             logging.info(f"Response received: {response}")  # Log the API response
             
-            # Updated access to the response properties
             if response.choices:  # Check if choices is not empty
                 parsed_results.append(response.choices[0].message.content)
             else:

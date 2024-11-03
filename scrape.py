@@ -28,7 +28,7 @@ def scrape_website(website, browser="chrome"):
         # Navigate to the website URL
         driver.get(website)
         print("Page loaded...")
-        time.sleep(3)  # Allow the page to fully load (you can improve this with WebDriverWait if needed)
+        time.sleep(3)  # Allow the page to fully load
         
         # Get the HTML source of the loaded page
         html = driver.page_source
@@ -88,7 +88,7 @@ def scrape_individual_page(url, browser="chrome"):
     try:
         # Load the page
         driver.get(url)
-        time.sleep(2)  # Consider increasing the wait time or using WebDriverWait for dynamic content
+        time.sleep(3)
         html = driver.page_source
         
         # Parse the HTML with BeautifulSoup
@@ -106,6 +106,7 @@ def scrape_individual_page(url, browser="chrome"):
 
         # Extract the main content (div with class "entry-content")
         content_element = soup.find("div", class_="entry-content e-content read__internal_content")
+
         # Get all paragraph <p> tags inside this div for the speech content
         paragraphs = content_element.find_all("p") if content_element else []
         content = "\n\n".join(p.get_text(strip=True) for p in paragraphs)
@@ -118,7 +119,7 @@ def scrape_individual_page(url, browser="chrome"):
             "content": content if content else "No content found"
         }
     except Exception as e:
-        st.write(f"Error while scraping {url}: {str(e)}")  # Output any errors encountered
+        st.write(f"Error while scraping {url}: {str(e)}")
         return {
             "title": "Error",
             "summary": "Error",
@@ -126,8 +127,6 @@ def scrape_individual_page(url, browser="chrome"):
         }
     finally:
         driver.quit()
-
-
 
 # Function to extract only the <body> content from the raw HTML
 def extract_body_content(html_content):
