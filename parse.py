@@ -1,41 +1,41 @@
-# Import necessary components for integrating the Ollama LLM with Python
-from langchain_ollama import OllamaLLM  # Connects Large Language Models (LLMs) to Python
-from langchain_core.prompts import ChatPromptTemplate  # For creating prompts for the LLM
+import os
+from groq import Groq
+import logging
+logging.basicConfig(level=logging.INFO)  # Configure logging level
 
-# Define a template for the LLM, providing instructions on how to extract information from the DOM content
-template = (
-    "You are tasked with extracting specific information from the following text content: {dom_content}. "
-    "Please follow these instructions carefully: \n\n"
-    "1. **Extract Information:** Only extract the information that directly matches the provided description: {parse_description}. "
-    "2. **No Extra Content:** Do not include any additional text, comments, or explanations in your response. "
-    "3. **Empty Response:** If no information matches the description, return an empty string ('')."
-    "4. **Direct Data Only:** Your output should contain only the data that is explicitly requested, with no other text."
-)
 
-# Initialize the LLM model using Ollama; specifying a model version (in this case, "llama3.2")
-model = OllamaLLM(model="llama3.2")
+# Load the Groq API key from the environment variable
+groq_api_key = os.getenv("GROQ_API_KEY")
+if groq_api_key is None:
+    raise ValueError("GROQ_API_KEY environment variable is not set.")
 
-# Function that interacts with the LLM to parse the DOM content in chunks based on the provided description
-def parse_with_ollama(dom_chunks, parse_description):
-    # Create a prompt using the defined template, which combines the DOM content and description
-    prompt = ChatPromptTemplate.from_template(template)
+# Initialize the Groq client
+client = Groq(api_key=groq_api_key)
 
-    # Create a processing chain: input (prompt) --> process (model)
-    chain = prompt | model 
-
-    # Initialize a list to store parsed results from each chunk
+def parse_with_groq(dom_chunks, parse_description):
     parsed_results = []
+    logging.info("Starting parsing with Groq...")
 
-    # Loop through each chunk of the DOM content and send it to the LLM for processing
-    for i, chunk in enumerate(dom_chunks, start=1):
-        # Call the LLM with the current chunk and the parsing instructions
-        response = chain.invoke({"dom_content": chunk, "parse_description": parse_description})
+    for chunk in dom_chunks:
+        logging.info(f"Processing chunk: {chunk}")  # Log the current chunk being processed
+        try:
+            response = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are tasked with extracting specific information."},
+                    {"role": "user", "content": f"Extract the following information: {parse_description} from the text: {chunk}"}
+                ],
+                model="llama3-8b-8192"
+            )
+            logging.info(f"Response received: {response}")  # Log the API response
+            
+            # Updated access to the response properties
+            if response.choices:  # Check if choices is not empty
+                parsed_results.append(response.choices[0].message.content)
+            else:
+                logging.warning("No choices returned in the API response.")  # Log a warning if no choices are available
+            
+        except Exception as e:
+            logging.error(f"Error: {e}")  # General error logging
 
-        # Log progress by showing which chunk is being processed
-        print(f"Parsed batch {i} of {len(dom_chunks)}")
-
-        # Append the LLM's response to the parsed_results list
-        parsed_results.append(response)
-
-    # Join the parsed results from all chunks into a single string and return it
     return "\n".join(parsed_results)
+
