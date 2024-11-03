@@ -109,7 +109,7 @@ if "dom_content" in st.session_state:
     # Input field for users to describe what specific information they want to extract
     parse_description = st.text_area(
         "Describe what you want to parse:",
-        value="Extract details of each speech, including date, location, and main topics discussed, and organize them in a structured table format."
+        value="Extract details of each speech, including date, location, and main topics discussed, and organize them in a structured table format." # Default prompt
     )
 
     # Check if the "Parse Content" button is clicked
