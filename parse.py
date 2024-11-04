@@ -1,8 +1,21 @@
-# Import necessary components for integrating the Ollama LLM with Python
-from langchain_ollama import OllamaLLM  # Connects Large Language Models (LLMs) to Python
-from langchain_core.prompts import ChatPromptTemplate  # For creating prompts for the LLM
 
-# Define a template for the LLM, providing instructions on how to extract information from the DOM content
+import os
+from langchain_groq import ChatGroq
+from langchain_core.prompts import ChatPromptTemplate
+import logging
+
+# Load the Groq API key from the environment variable
+groq_api_key = os.getenv("GROQ_API_KEY")
+if groq_api_key is None:
+    raise ValueError("GROQ_API_KEY environment variable is not set.")
+
+# Initialize the LLM model using ChatGroq with the API key
+llm = ChatGroq(
+    model="llama-3.2-1b-preview",
+    api_key=groq_api_key,
+    timeout=300,
+)
+
 template = (
     "You are tasked with extracting specific information from the following text content: {dom_content}. "
     "Please follow these instructions carefully: \n\n"
@@ -12,31 +25,27 @@ template = (
     "4. **Direct Data Only:** Your output should contain only the data that is explicitly requested, with no other text."
 )
 
-# Initialize the LLM model using Ollama; specifying a model version, depending on the one installed from https://github.com/ollama/ollama
-# Ex: ollama run llama3.2 OR ollama run llama3.2:1b
-model = OllamaLLM(model="llama3.2:1b")
-
-# Function that interacts with the LLM to parse the DOM content in chunks based on the provided description
-def parse_with_ollama(dom_chunks, parse_description):
-    # Create a prompt using the defined template, which combines the DOM content and description
+def parse_with_groq(dom_chunks, parse_description):
     prompt = ChatPromptTemplate.from_template(template)
+    chain = prompt | llm 
 
-    # Create a processing chain: input (prompt) --> process (model)
-    chain = prompt | model 
-
-    # Initialize a list to store parsed results from each chunk
     parsed_results = []
 
-    # Loop through each chunk of the DOM content and send it to the LLM for processing
     for i, chunk in enumerate(dom_chunks, start=1):
-        # Call the LLM with the current chunk and the parsing instructions
-        response = chain.invoke({"dom_content": chunk, "parse_description": parse_description})
+        # Add print statements here
+        print(f"Parsing chunk: {chunk}")
+        print(f"Parse description: {parse_description}")
+        print(f"DOM Chunks: {dom_chunks}")
 
-        # Log progress by showing which chunk is being processed
-        print(f"Parsed batch {i} of {len(dom_chunks)}")
 
-        # Append the LLM's response to the parsed_results list
-        parsed_results.append(response)
+        try:
+            response = chain.invoke({"dom_content": chunk, "parse_description": parse_description})
+            print(f"Response content: {response.content}")
+            parsed_results.append(response.content)
+        except Exception as e:
+            logging.error(f"Error parsing batch {i}: {e}")
+            parsed_results.append(f"Error: {e}")
 
-    # Join the parsed results from all chunks into a single string and return it
+
     return "\n".join(parsed_results)
+

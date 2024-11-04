@@ -38,10 +38,12 @@ This project was developed following [this tutorial](https://www.youtube.com/wat
     ```
 
 3.  **Install the dependencies listed in requirements.txt**:
+
     ```bash
     pip install -r requirements.txt
 
     ```
+
 4.  **Set up chromedriver.exe and geckodriver.exe**:
 
 - Ensure that chromedriver.exe and geckodriver.exe are in the project directory or added to your system's PATH.
