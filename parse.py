@@ -21,8 +21,13 @@ def parse_with_groq(dom_chunks, parse_description):
         try:
             response = client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": "You are tasked with extracting specific information."},
-                    {"role": "user", "content": f"Extract the following information: {parse_description} from the text: {chunk}"}
+                    {"role": "system", "content": "You are tasked with analyzing speech transcripts."},
+                    {"role": "user", "content": f"Analyze the following speech text and extract:\n"
+                                                 f"- Date of the speech\n"
+                                                 f"- Location\n"
+                                                 f"- Main topics discussed\n"
+                                                 f"- Key quotes\n\n"
+                                                 f"Text: {chunk}"}
                 ],
                 model="llama3-8b-8192"
             )

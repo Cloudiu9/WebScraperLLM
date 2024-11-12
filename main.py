@@ -1,128 +1,136 @@
-import json  # Import JSON module for file download
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
+import logging
 import streamlit as st
 from scrape import scrape_all_links, scrape_individual_page, split_dom_content
 from parse import parse_with_groq
+from datetime import datetime
 
 # Set the title of the Streamlit app
 st.title("AI Web Scraper")
 
-# Create an input field for the user to enter the URL of the website to scrape, with a default value
+# Create an input field for the URL
 url = st.text_input(
     "Enter a website URL:",
     value="http://en.kremlin.ru/events/president/transcripts"  # Default URL
 )
 
-# Add a selectbox for the user to choose the browser (Chrome or Firefox)
+# Selectbox for browser choice
 browser_choice = st.selectbox(
     "Select browser for scraping:",
     ("Chrome", "Firefox")
 )
 
-# Initialize a button to stop scraping
+# Date input fields to set month and year limit
+end_month = st.selectbox("End Month:", range(1, 13), format_func=lambda x: datetime(1, x, 1).strftime('%B'))
+end_year = st.number_input("End Year:", min_value=2000, max_value=datetime.now().year, value=datetime.now().year)
+
+# Initialize session state for storing data
+if 'dom_content' not in st.session_state:
+    st.session_state.dom_content = ""
+
+if 'scraped_data' not in st.session_state:
+    st.session_state.scraped_data = []
+
+# Stop Scraping button
 if st.button("Stop Scraping"):
-    if "scraped_data" in st.session_state:
-        # Save the scraped content as JSON
-        json_data = json.dumps(
-            st.session_state.scraped_data,
-            ensure_ascii=False,
-            indent=4
-        )
+    if st.session_state.scraped_data:
+        json_data = json.dumps(st.session_state.scraped_data, ensure_ascii=False, indent=4)
         with open("scraped_content.json", "w", encoding='utf-8') as f:
             f.write(json_data)
-        st.success("Scraped content saved successfully.")
+
+        # Construct DOM content from scraped data
+        st.session_state.dom_content = "\n".join(
+            f"Title: {item['title']}\n\nSummary: {item['summary']}\n\n{item['content']}\n\n"
+            for item in st.session_state.scraped_data
+        )
+
+        # Save the constructed DOM content
+        if st.session_state.dom_content:
+            st.session_state.saved_dom_content = st.session_state.dom_content
+            st.success("Scraped content saved successfully, including total DOM content.")
+        else:
+            st.warning("No DOM content available to save.")
     else:
         st.warning("No data has been scraped yet.")
 
-# Check if the "Scrape Site" button is clicked
+# Scrape Site button
 if st.button("Scrape Site"):
-    st.write(f"Scraping the website using {browser_choice}...")  # Display feedback when scraping starts
-
-    # Scrape all links from the main page
+    st.write(f"Scraping the website using {browser_choice}...")
     st.write("Extracting links to individual transcripts...")
-    article_links = scrape_all_links(url, browser=browser_choice.lower())  # Scrape all links
 
-    if article_links:
+    # Scrape links up to the specified month and year
+    article_links = scrape_all_links(url, browser=browser_choice.lower(), end_month=end_month, end_year=end_year)
+
+    logging.info("Article links found: %s", article_links)
+
+    if article_links:  # Check if any links were found
         st.write(f"Found {len(article_links)} transcript links.")
-        st.session_state.article_links = article_links  # Store the article links in session state
-        st.session_state.scraped_data = []  # Initialize an empty list to store scraped content
+        st.session_state.article_links = article_links
 
         # Display the list of links in a collapsible expander
         with st.expander("View Transcript Links"):
             for link in article_links:
                 st.write(link)
 
-        # Iterate through all the individual transcript links
-        for i, link in enumerate(article_links):
-            st.write(f"Scraping transcript {i + 1}/{len(article_links)}: {link}")
+        # Use ThreadPoolExecutor for concurrent scraping of individual pages
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_link = {executor.submit(scrape_individual_page, link, browser_choice.lower()): link for link in article_links}
 
-            # Scrape the content of the individual transcript page
-            transcript_data = scrape_individual_page(link, browser=browser_choice.lower())
+            for future in as_completed(future_to_link):
+                link = future_to_link[future]
+                try:
+                    transcript_data = future.result()
+                    title = transcript_data.get("title", "No Title")
+                    summary = transcript_data.get("summary", "No Summary")
+                    content = transcript_data.get("content", "No Content")
 
-            # Extract the title, summary, and content from the transcript_data
-            title = transcript_data.get("title", "No Title")
-            summary = transcript_data.get("summary", "No Summary")
-            content = transcript_data.get("content", "No Content")
+                    # Append the transcript's data as a dictionary to the scraped_data list
+                    st.session_state.scraped_data.append({
+                        "title": title,
+                        "summary": summary,
+                        "content": content
+                    })
 
-            # Check for empty fields and warn if any are missing
-            if title == "No Title" or summary == "No Summary" or content == "No Content":
-                st.write("Warning: One of the fields is empty.")  # Warning message
+                    # Display the cleaned transcript in an expander
+                    with st.expander(f"View Transcript Content - {title}"):
+                        st.subheader(f"Transcript: {title}")
+                        st.write(f"**Summary:** {summary}")
+                        st.text_area("Transcript", content, height=300)
 
-            # Append the transcript's data as a dictionary to the scraped_data list
-            st.session_state.scraped_data.append({
-                "title": title,
-                "summary": summary,
-                "content": content
-            })
+                except Exception as e:
+                    st.write(f"Error scraping {link}: {e}")
 
-            # Display the cleaned transcript in an expander
-            with st.expander(f"View Transcript Content - {title}"):
-                st.subheader(f"Transcript: {title}")
-                st.write(f"**Summary:** {summary}")
-                st.text_area("Transcript", content, height=300)
+# Store DOM content in session state
+st.session_state.dom_content = "\n".join(
+    f"Title: {item['title']}\n\nSummary: {item['summary']}\n\n{item['content']}\n\n"
+    for item in st.session_state.scraped_data
+)
 
-            # Store the scraped content collected so far in session state
-            st.session_state.dom_content = f"Title: {title}\n\nSummary: {summary}\n\n{content}\n\n"
-
-            # Debugging line to check DOM content length
-            st.write(f"DOM Content Length: {len(st.session_state.dom_content)}")  # Debug line
-
-# Provide a download button for the scraped content as a JSON file if there’s content
+# Download JSON button
 if "scraped_data" in st.session_state and st.session_state.scraped_data:
-    # Format JSON with proper line breaks and indentation
-    json_data = json.dumps(
-        st.session_state.scraped_data, 
-        ensure_ascii=False,  # Keep special characters as they are
-        indent=4  # Use indentation for better readability
-    )
+    json_data = json.dumps(st.session_state.scraped_data, ensure_ascii=False, indent=4)
     st.download_button(
         label="Download Scraped Content as JSON",
-        data=json_data.encode('utf-8'),  # Encode to utf-8 for compatibility
+        data=json_data.encode('utf-8'),
         file_name="scraped_content.json",
         mime="application/json"
     )
 
-# User input for describing what they want to parse from the content
-# This block checks if the content has been saved in the session
-if "dom_content" in st.session_state:
-    st.write(f"DOM Content Length: {len(st.session_state.dom_content)}")  # Debug line
-
-    # Input field for users to describe what specific information they want to extract
+# Parsing section
+if "saved_dom_content" in st.session_state and st.session_state.saved_dom_content:
+    st.write(f"DOM Content Length: {len(st.session_state.saved_dom_content)}")
+    
     parse_description = st.text_area(
         "Describe what you want to parse:",
-        value="Extract details of each speech, including date, location, and main topics discussed, and organize them in a structured table format." # Default prompt
+        value="Analyze speeches:"
     )
 
-    # Check if the "Parse Content" button is clicked
     if st.button("Parse Content"):
         if parse_description:
-            st.write("Parsing the content")  # Display feedback when parsing starts
+            st.write("Parsing the content")
+            dom_chunks = split_dom_content(st.session_state.saved_dom_content)
 
-            # Split the stored DOM content into chunks (to avoid exceeding token limits in LLMs)
-            dom_chunks = split_dom_content(st.session_state.dom_content)
-
-            if not dom_chunks:
-                st.write("No content to parse.")  # Check for empty chunks
-            else:
-                # Pass the DOM chunks and user-provided parse description to the LLM
+            if dom_chunks:
                 result = parse_with_groq(dom_chunks, parse_description)
                 st.write(result)
