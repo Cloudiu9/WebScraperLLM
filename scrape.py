@@ -1,6 +1,5 @@
 from datetime import datetime
 import logging
-import requests
 import selenium.webdriver as webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.firefox.service import Service as FirefoxService

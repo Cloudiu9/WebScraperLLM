@@ -73,3 +73,4 @@
 - Start scraping, and the scraper will collect data from all individual pages linked from the main URL.
 - Parse and process the scraped data with Groq's API LLM, directly from the interface, for advanced text analysis or summarization.
 - Download scraped content as a JSON file if needed.
+- Run the **sortJSON.py** file to sort the JSON file by date if needed.
