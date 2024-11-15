@@ -23,39 +23,31 @@
 
 1. **Set up a virtual environment** (optional but recommended):
 
-    ```bash
-    python -m venv ai
-    .\ai\Scripts\activate.bat  # On Windows
-    # OR
-    source ai/bin/activate  # On macOS/Linux
-    ```
+   ```bash
+   python -m venv ai
+   .\ai\Scripts\activate.bat  # On Windows
+   # OR
+   source ai/bin/activate  # On macOS/Linux
+   ```
 
 2. **Clone the repository**:
 
-    ```bash
-    git clone https://github.com/Cloudiu9/WebScraperLLM.git
-    cd WebScraperLLM
-    ```
+   ```bash
+   git clone https://github.com/Cloudiu9/WebScraperLLM.git
+   cd WebScraperLLM
+   ```
 
-<<<<<<< HEAD
-3.  **Install the dependencies listed in requirements.txt**:
-
-=======
 3. **Install the dependencies listed in requirements.txt**:
->>>>>>> 23d24a7e3589afc6145026a3cdb238aa929c4ae3
-    ```bash
-    pip install -r requirements.txt
-    ```
-<<<<<<< HEAD
 
-4.  **Set up chromedriver.exe and geckodriver.exe**:
-=======
->>>>>>> 23d24a7e3589afc6145026a3cdb238aa929c4ae3
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 4. **Install the Groq API library** (if not included in requirements.txt):
-    ```bash
-    pip install groq  # or `pip install <groq-library-package>` if named differently
-    ```
+
+   ```bash
+   pip install groq  # or `pip install <groq-library-package>` if named differently
+   ```
 
 5. **Set up chromedriver.exe and geckodriver.exe**:
 
@@ -72,6 +64,7 @@
 
   ```bash
   streamlit run main.py
+  ```
 
 ## Example Workflow
 
