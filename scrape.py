@@ -27,39 +27,6 @@ def get_browser_driver(browser="chrome"):
         driver = webdriver.Chrome(service=ChromeService(chrome_driver_path), options=options)
     return driver
 
-
-# Function to scrape each page's content
-def scrape_individual_page(url, browser="chrome"):
-    driver = get_browser_driver(browser)
-    global stopped
-    
-    try:
-        driver.get(url)
-        time.sleep(2)
-        html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
-        
-        # Extract elements
-        title = soup.find("h1", class_="entry-title p-name").get_text(strip=True) if soup.find("h1", class_="entry-title p-name") else "No title found"
-        summary = soup.find("div", class_="read__lead entry-summary p-summary").get_text(strip=True) if soup.find("div", class_="read__lead entry-summary p-summary") else "No summary found"
-        content_element = soup.find("div", class_="entry-content e-content read__internal_content")
-        content = "\n\n".join(p.get_text(strip=True) for p in content_element.find_all("p")) if content_element else "No content found"
-        
-        # Display content incrementally
-        st.write(f"Extracted Title: {title}")
-        st.write(f"Extracted Summary: {summary}")
-        st.write(f"Extracted Content Length: {len(content)}")
-        
-        return {"title": title, "summary": summary, "content": content}
-    except Exception as e:
-        st.write(f"Error scraping {url}: {e}")
-        return {"title": "Error", "summary": "Error", "content": "Error"}
-    finally:
-        driver.quit()
-        if stopped:
-            st.write("Scraping stopped by user.")
-
-
 def scrape_all_links(url, browser='chrome', end_month=None, end_year=None):
     # Initialize WebDriver based on the selected browser
     if browser == 'chrome':
