@@ -2,7 +2,7 @@
 
 ## This project is for educational purposes only. Users are responsible for complying with the terms of service of any website they interact with. ##
 
-**WebScraperLLM** is a Python-based project for scraping data from websites using **Selenium**, **BeautifulSoup**, and **Streamlit**, with the ability to pass extracted data to a **Large Language Model (LLM)** for further processing. This project was developed following [this tutorial](https://www.youtube.com/watch?v=Oo8-nEuDBkk).
+**WebScraperLLM** is a Python-based project for scraping data from websites using **Selenium**, **BeautifulSoup**, and **Streamlit**, with the ability to pass extracted data to a **Large Language Model (LLM)** for further processing. The foundation of this project was developed following [this tutorial](https://www.youtube.com/watch?v=Oo8-nEuDBkk).
 
 ## Features
 
@@ -70,7 +70,7 @@
 
 ## Example Workflow
 
-- Enter a website URL (such as http://en.kremlin.ru/events/president/transcripts) in the Streamlit interface to begin scraping.
+- Enter a website URL with a structure similar to http://example.com/events/category/transcripts in the Streamlit interface to begin scraping. Ensure the site you use follows a consistent format for event and transcript pages to work effectively with this scraper.
 - Select the browser (Chrome or Firefox).
 - Start scraping, and the scraper will collect data from all individual pages linked from the main URL.
 - Parse and process the scraped data with Groq's API LLM, directly from the interface, for advanced text analysis or summarization.
