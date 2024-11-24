@@ -12,7 +12,7 @@ st.title("AI Web Scraper")
 # Create an input field for the URL
 url = st.text_input(
     "Enter a website URL:",
-    value="http://en.kremlin.ru/events/president/transcripts"  # Default URL
+    value="https://www.google.co.uk/"  # Default URL
 )
 
 # Selectbox for browser choice
