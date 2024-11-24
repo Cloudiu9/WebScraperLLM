@@ -1,5 +1,7 @@
 # WebScraperLLM
 
+## This project is for educational purposes only. Users are responsible for complying with the terms of service of any website they interact with. ##
+
 **WebScraperLLM** is a Python-based project for scraping data from websites using **Selenium**, **BeautifulSoup**, and **Streamlit**, with the ability to pass extracted data to a **Large Language Model (LLM)** for further processing. This project was developed following [this tutorial](https://www.youtube.com/watch?v=Oo8-nEuDBkk).
 
 ## Features
