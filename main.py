@@ -9,11 +9,8 @@ from datetime import datetime
 # Set the title of the Streamlit app
 st.title("AI Web Scraper")
 
-# Create an input field for the URL
-url = st.text_input(
-    "Enter a website URL:",
-    value="http://en.kremlin.ru/events/president/transcripts"  # Default URL
-)
+# Option to input a URL or upload a .txt file
+option = st.selectbox("Choose an option:", ["Scrape from URL", "Upload .txt File"])
 
 # Selectbox for browser choice
 browser_choice = st.selectbox(
@@ -54,52 +51,120 @@ if st.button("Stop Scraping"):
     else:
         st.warning("No data has been scraped yet.")
 
-# Scrape Site button
-if st.button("Scrape Site"):
-    st.write(f"Scraping the website using {browser_choice}...")
-    st.write("Extracting links to individual transcripts...")
+# Section for scraping from a URL
+if option == "Scrape from URL":
+    url = st.text_input(
+        "Enter a website URL:",
+        value="http://en.kremlin.ru/events/president/transcripts"  # Default URL
+    )
 
-    # Scrape links up to the specified month and year
-    article_links = scrape_all_links(url, browser=browser_choice.lower(), end_month=end_month, end_year=end_year)
+    # Scrape Site button for URL input
+    if st.button("Scrape Site"):
+        if url:  # Check if a URL was provided
+            st.write(f"Scraping the website using {browser_choice}...")
+            st.write("Extracting links to individual transcripts...")
 
-    logging.info("Article links found: %s", article_links)
+            # Scrape links up to the specified month and year
+            article_links = scrape_all_links(url, browser=browser_choice.lower(), end_month=end_month, end_year=end_year)
 
-    if article_links:  # Check if any links were found
-        st.write(f"Found {len(article_links)} transcript links.")
-        st.session_state.article_links = article_links
+            logging.info("Article links found: %s", article_links)
 
-        # Display the list of links in a collapsible expander
-        with st.expander("View Transcript Links"):
-            for link in article_links:
-                st.write(link)
+            if article_links:  # Check if any links were found
+                st.write(f"Found {len(article_links)} transcript links.")
+                st.session_state.article_links = article_links
 
-        # Use ThreadPoolExecutor for concurrent scraping of individual pages
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_link = {executor.submit(scrape_individual_page, link, browser_choice.lower()): link for link in article_links}
+                # Display the list of links in a collapsible expander
+                with st.expander("View Transcript Links"):
+                    for link in article_links:
+                        st.write(link)
 
-            for future in as_completed(future_to_link):
-                link = future_to_link[future]
-                try:
-                    transcript_data = future.result()
-                    title = transcript_data.get("title", "No Title")
-                    summary = transcript_data.get("summary", "No Summary")
-                    content = transcript_data.get("content", "No Content")
+                # Use ThreadPoolExecutor for concurrent scraping of individual pages
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    future_to_link = {executor.submit(scrape_individual_page, link, browser_choice.lower()): link for link in article_links}
 
-                    # Append the transcript's data as a dictionary to the scraped_data list
-                    st.session_state.scraped_data.append({
-                        "title": title,
-                        "summary": summary,
-                        "content": content
-                    })
+                    for future in as_completed(future_to_link):
+                        link = future_to_link[future]
+                        try:
+                            transcript_data = future.result()
+                            title = transcript_data.get("title", "No Title")
+                            summary = transcript_data.get("summary", "No Summary")
+                            content = transcript_data.get("content", "No Content")
 
-                    # Display the cleaned transcript in an expander
-                    with st.expander(f"View Transcript Content - {title}"):
-                        st.subheader(f"Transcript: {title}")
-                        st.write(f"**Summary:** {summary}")
-                        st.text_area("Transcript", content, height=300)
+                            # Append the transcript's data as a dictionary to the scraped_data list
+                            st.session_state.scraped_data.append({
+                                "title": title,
+                                "summary": summary,
+                                "content": content
+                            })
 
-                except Exception as e:
-                    st.write(f"Error scraping {link}: {e}")
+                            # Display the cleaned transcript in an expander
+                            with st.expander(f"View Transcript Content - {title}"):
+                                st.subheader(f"Transcript: {title}")
+                                st.write(f"**Summary:** {summary}")
+                                st.text_area("Transcript", content, height=300)
+
+                        except Exception as e:
+                            st.write(f"Error scraping {link}: {e}")
+            else:
+                st.warning("No valid URLs found from the provided base URL.")
+        else:
+            st.warning("Please enter a valid URL.")
+
+# Section for uploading .txt file with URLs
+elif option == "Upload .txt File":
+    uploaded_file = st.file_uploader("Upload a .txt file with URLs:", type=["txt"])
+
+    # Scrape Site button for file upload input
+    if uploaded_file is not None:
+        # Read the uploaded file and extract URLs
+        urls = uploaded_file.read().decode('utf-8').splitlines()
+
+        # Clean the URLs: strip whitespace and filter out empty strings
+        urls = [url.strip() for url in urls if url.strip()]
+
+        logging.info("URLs loaded from file: %s", urls)
+
+        if urls:  # Check if any links were found
+            st.write(f"Found {len(urls)} transcript links.")
+            st.session_state.article_links = urls
+
+            # Display the list of links in a collapsible expander
+            with st.expander("View Transcript Links"):
+                for link in urls:
+                    st.write(link)
+
+            # Use ThreadPoolExecutor for concurrent scraping of individual pages
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                future_to_link = {executor.submit(scrape_individual_page, link, browser_choice.lower()): link for link in urls}
+
+                for future in as_completed(future_to_link):
+                    link = future_to_link[future]
+                    try:
+                        transcript_data = future.result()
+                        title = transcript_data.get("title", "No Title")
+                        summary = transcript_data.get("summary", "No Summary")
+                        content = transcript_data.get("content", "No Content")
+
+                        # Append the transcript's data as a dictionary to the scraped_data list
+                        st.session_state.scraped_data.append({
+                            "title": title,
+                            "summary": summary,
+                            "content": content
+                        })
+
+                        # Display the cleaned transcript in an expander
+                        with st.expander(f"View Transcript Content - {title}"):
+                            st.subheader(f"Transcript: {title}")
+                            st.write(f"**Summary:** {summary}")
+                            st.text_area("Transcript", content, height=300)
+
+                    except Exception as e:
+                        st.write(f"Error scraping {link}: {e}")
+        else:
+            st.warning("No valid URLs found in the uploaded file.")
+    else:
+        if option == "Upload .txt File":
+            st.warning("Please upload a .txt file containing URLs.")
 
 # Store DOM content in session state
 st.session_state.dom_content = "\n".join(
