@@ -71,8 +71,10 @@
 ## Example Workflow
 
 - Enter a website URL with a structure similar to http://example.com/events/category/transcripts in the Streamlit interface to begin scraping. Ensure the site you use follows a consistent format for event and transcript pages to work effectively with this scraper.
+  ## OR ##
+- Upload a text file containing the links you intend to scrape.
 - Select the browser (Chrome or Firefox).
-- Start scraping, and the scraper will collect data from all individual pages linked from the main URL.
+- Start scraping, and the scraper will collect data from all individual pages linked from the main URL / from the text file.
 - Parse and process the scraped data with Groq's API LLM, directly from the interface, for advanced text analysis or summarization.
 - Download scraped content as a JSON file if needed.
 - Run the **sortJSON.py** file to sort the JSON file by date if needed.
