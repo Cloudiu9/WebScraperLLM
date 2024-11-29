@@ -11,6 +11,7 @@ import time
 import random
 from fake_useragent import UserAgent
 
+
 # Initialize global variables for scraping
 stopped = False
 
@@ -220,41 +221,55 @@ def scrape_all_links(url, browser='chrome', end_month=None, end_year=None, delay
     
     return list(all_links)
 
-def fetch_page_with_retry(url, driver, retries=3):
+def fetch_page_with_retry(url, driver, stop_event, retries=3, delay=1):
+    """
+    Fetches a page with retries and a delay between requests.
+    
+    Parameters:
+    - url (str): The URL of the page to fetch.
+    - driver: The WebDriver instance being used.
+    - stop_event: The threading event to check for stopping the scraper.
+    - retries (int): The number of retry attempts.
+    - delay (int): The delay between requests in seconds.
+    
+    Returns:
+    - str: The page source if successful, None otherwise.
+    """
     for attempt in range(retries):
-        driver.get(url)
-        time.sleep(2)  # Allow time for the page to load
-        if "403 Forbidden" not in driver.page_source:
+        if stop_event.is_set():  # Check if scraping should stop
+            logging.info("Stopping fetch_page_with_retry as requested by user.")
+            return None  # Return None or handle accordingly if scraping is stopped
+
+        try:
+            driver.get(url)
+            time.sleep(delay)  # Stagger requests to avoid overwhelming the server
             return driver.page_source
-        logging.warning("Attempt %d: Received 403 Forbidden for URL: %s", attempt + 1, url)
-        time.sleep(5)  # Wait before retrying
-    return None  # Return None if all attempts fail
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1} failed for {url}: {e}")
+            time.sleep(delay * (attempt + 1))  # Exponential backoff
+
+    return None
 
 # Function to scrape content from each individual page, focusing on specific elements
-def scrape_individual_page(url, browser="chrome"):
+def scrape_individual_page(url, browser="chrome", stop_event=None):
+    if stop_event and stop_event.is_set():
+        return None
+
     driver = get_browser_driver(browser)
     try:
-        # Load the page with retries for handling errors
-        html = fetch_page_with_retry(url, driver)
-        if not html:
-            logging.error("Failed to load page after multiple attempts: %s", url)
+        html = fetch_page_with_retry(url, driver, stop_event)
+        if not html or (stop_event and stop_event.is_set()):
             return None
-        
-        # Parse the HTML with BeautifulSoup
+
+        # Scrape page content
         soup = BeautifulSoup(html, "html.parser")
-        
-        # Extract the title (h1 element with class "entry-title")
         title_element = soup.find("h1", class_="entry-title p-name")
         title = title_element.get_text(strip=True) if title_element else "No title found"
-        
-        # Extract the summary (div with class "read__lead entry-summary")
+
         summary_element = soup.find("div", class_="read__lead entry-summary p-summary")
         summary = summary_element.get_text(strip=True) if summary_element else "No summary found"
-        
-        # Extract the main content (div with class "entry-content")
+
         content_element = soup.find("div", class_="entry-content e-content read__internal_content")
-        
-        # Get all paragraph <p> tags inside this div for the speech content
         paragraphs = content_element.find_all("p") if content_element else []
         content = "\n\n".join(p.get_text(strip=True) for p in paragraphs) if paragraphs else "No content found"
 
@@ -264,9 +279,10 @@ def scrape_individual_page(url, browser="chrome"):
             "content": content,
         }
     except Exception as e:
-        logging.error("Error scraping %s: %s", url, e)
+        logging.error(f"Error scraping {url}: {e}")
+        return None
     finally:
-        driver.quit()  # Ensure driver is properly closed
+        driver.quit()
 
 
 # Function to extract only the <body> content from the raw HTML

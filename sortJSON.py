@@ -15,7 +15,7 @@ def extract_date(content):
     return datetime.min  # Fallback if no date found
 
 # Load the JSON data
-with open("scraped_content.json", "r", encoding="utf-8") as file:
+with open("scraped_2024-2014.json", "r", encoding="utf-8") as file:
     data = json.load(file)
 
 # Replace \n characters in summary and content fields
@@ -27,5 +27,5 @@ for item in data:
 data.sort(key=lambda x: extract_date(x['content']), reverse=True)
 
 # Save the sorted data to a new JSON file
-with open("sorted_transcripts.json", "w", encoding="utf-8") as file:
+with open("sorted_2024-2014.json", "w", encoding="utf-8") as file:
     json.dump(data, file, indent=4, ensure_ascii=False)
