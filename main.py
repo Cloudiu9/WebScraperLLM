@@ -8,8 +8,177 @@ from parse import parse_with_groq
 from datetime import datetime
 import threading
 
-# Set the title of the Streamlit app
-st.title("AI Web Scraper")
+st.markdown("""
+<style>
+/* ── BASE ───────────────────────────────────────────────────── */
+html, body, .stApp {
+    background-color: #09090f;
+    color: #d8dce8;
+    font-family: 'Courier New', Courier, monospace;
+}
+.block-container {
+    padding-top: 2.5rem;
+    max-width: 900px;
+}
+.stApp {
+    background-image:
+        radial-gradient(ellipse at top left,  rgba(160,0,0,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at bottom right, rgba(20,40,90,0.18) 0%, transparent 60%);
+}
+
+/* ── TITLE ──────────────────────────────────────────────────── */
+h1 {
+    font-family: 'Courier New', Courier, monospace !important;
+    color: #cc1111 !important;
+    font-weight: 900 !important;
+    letter-spacing: 4px !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 28px rgba(200,10,10,0.45);
+    border-bottom: 2px solid #cc1111;
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.2rem !important;
+}
+h2, h3 {
+    color: #c9a84c !important;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* ── LABELS ─────────────────────────────────────────────────── */
+label, .stSelectbox label, .stTextInput label,
+.stTextArea label, .stNumberInput label {
+    color: #8b9ab0 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+}
+
+/* ── INPUTS ─────────────────────────────────────────────────── */
+input, textarea {
+    background-color: #10141f !important;
+    color: #d8dce8 !important;
+    border: 1px solid #2a3550 !important;
+    border-radius: 2px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+}
+input:focus, textarea:focus {
+    border-color: #cc1111 !important;
+    box-shadow: 0 0 10px rgba(204,17,17,0.25) !important;
+}
+
+/* ── SELECTBOXES ─────────────────────────────────────────────── */
+[data-testid="stSelectbox"] > div > div,
+[data-testid="stNumberInput"] input {
+    background-color: #10141f !important;
+    color: #d8dce8 !important;
+    border: 1px solid #2a3550 !important;
+    border-radius: 2px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+}
+
+/* ── BUTTONS ─────────────────────────────────────────────────── */
+.stButton > button {
+    background-color: #130000;
+    color: #cc1111;
+    border: 1px solid #cc1111;
+    border-radius: 2px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    font-size: 0.82rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 0.5rem 1.4rem;
+    transition: all 0.2s ease;
+}
+.stButton > button:hover {
+    background-color: #cc1111;
+    color: #f0f0f0;
+    box-shadow: 0 0 18px rgba(204,17,17,0.5);
+}
+.stButton > button:active {
+    background-color: #991010;
+    transform: scale(0.98);
+}
+
+/* ── DOWNLOAD BUTTON ─────────────────────────────────────────── */
+[data-testid="stDownloadButton"] > button {
+    background-color: #071207;
+    color: #4caf50;
+    border: 1px solid #4caf50;
+    border-radius: 2px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.82rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    background-color: #4caf50;
+    color: #09090f;
+    box-shadow: 0 0 14px rgba(76,175,80,0.4);
+}
+
+/* ── EXPANDERS ───────────────────────────────────────────────── */
+[data-testid="stExpander"] summary,
+.streamlit-expanderHeader {
+    background-color: #10141f !important;
+    color: #c9a84c !important;
+    border-left: 3px solid #cc1111 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem !important;
+    border-radius: 2px !important;
+}
+[data-testid="stExpander"] {
+    border: 1px solid #1e2535 !important;
+    border-radius: 2px !important;
+    background-color: #0d1019 !important;
+}
+
+/* ── ALERTS ──────────────────────────────────────────────────── */
+[data-testid="stAlert"] {
+    background-color: #071207 !important;
+    border-left: 4px solid #4caf50 !important;
+    border-radius: 2px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.82rem;
+    letter-spacing: 0.5px;
+}
+[data-testid="stAlert"][data-baseweb="notification"] p {
+    color: #a8d5a2 !important;
+}
+
+/* ── WARNING ─────────────────────────────────────────────────── */
+[data-testid="stAlert"].st-warning,
+div.stWarning {
+    border-left-color: #c9a84c !important;
+    background-color: #12100a !important;
+}
+
+/* ── MARKDOWN TEXT ───────────────────────────────────────────── */
+.stMarkdown p, .stMarkdown li {
+    color: #9aa3b5;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.88rem;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #09090f; }
+::-webkit-scrollbar-thumb {
+    background: #cc1111;
+    border-radius: 2px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+st.title("⬛ KREMLIN TRANSCRIPT INTELLIGENCE")
+st.caption("CLASSIFIED — AUTOMATED TRANSCRIPT EXTRACTION SYSTEM · EYES ONLY")
+st.markdown("---")
 
 # Event for controlling scraping state
 stop_event = threading.Event()

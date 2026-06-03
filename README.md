@@ -89,3 +89,7 @@
   http://en.kremlin.ru/events/president/transcripts/54381
   "
 - After scraping, click "Parse content" to analyze with Groq's AI model (which may or may not work, depending on the amount of tokens used), which will then show the "Download as JSON" button that allows the user to download the scraped content in a JSON format.
+
+# Known issues:
+
+- "Stop Scraping" button may not work as intended. Please check your terminal to see the progress and restart the app if needed.
