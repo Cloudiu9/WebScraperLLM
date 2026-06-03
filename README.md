@@ -56,7 +56,6 @@
    Ensure that `chromedriver.exe` and `geckodriver.exe` are in the project directory or added to your system's PATH.
 
 6. **Set up the LLM**:
-
    - **Groq's API**: Register for a Groq API key at [Groq's API](https://console.groq.com/keys) and add it to your project’s environment variables or input it into your configuration.
    - **Ollama**: Download an [Ollama version](https://github.com/ollama/ollama) as an alternative LLM.
 
@@ -78,3 +77,15 @@
 - Parse and process the scraped data with Groq's API LLM, directly from the interface, for advanced text analysis or summarization.
 - Download scraped content as a JSON file if needed.
 - Run the **sortJSON.py** file to sort the JSON file by date if needed.
+
+(Have not tested Firefox scraping, it may not work, but Chrome should work.)
+
+- More specifically, leaving http://en.kremlin.ru/events/president/transcripts/page/1 as the choice for "Scrape from URL" and clicking "Scrape Site" collects all of the URLs up to the end month and year selected, groups them in the "View Transcript Links" section, then scrapes them one by one, while the "Upload .txt File" option requires a .txt file of the URLs, like so:
+  "
+  http://en.kremlin.ru/events/president/transcripts/57538
+  http://en.kremlin.ru/events/president/transcripts/60981
+  http://en.kremlin.ru/events/president/transcripts/20222
+  http://en.kremlin.ru/events/president/transcripts/57139
+  http://en.kremlin.ru/events/president/transcripts/54381
+  "
+- After scraping, click "Parse content" to analyze with Groq's AI model (which may or may not work, depending on the amount of tokens used), which will then show the "Download as JSON" button that allows the user to download the scraped content in a JSON format.

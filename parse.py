@@ -29,7 +29,7 @@ def parse_with_groq(dom_chunks, parse_description):
                                                  f"- Key quotes\n\n"
                                                  f"Text: {chunk}"}
                 ],
-                model="llama3-8b-8192"
+                model="llama-3.1-8b-instant",
             )
             logging.info(f"Response received: {response}")  # Log the API response
             

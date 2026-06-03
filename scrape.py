@@ -18,16 +18,87 @@ stopped = False
 def get_browser_driver(browser='chrome'):
     if browser.lower() == 'chrome':
         chrome_options = ChromeOptions()
-        chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+
+        chrome_options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        )
+
+        # ==========================================
+        # IGNORE INSECURE HTTP WARNINGS & CERT ERRORS
+        # ==========================================
+        chrome_options.set_capability("acceptInsecureCerts", True)
+        chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--ignore-ssl-errors=yes")
+        chrome_options.add_argument("--allow-running-insecure-content")
+        chrome_options.add_argument("--disable-web-security")
+        chrome_options.add_argument("--allow-insecure-localhost")
+
+        # Makes browsers not pop up
+        chrome_options.add_argument("--headless=new")
+
+        # ==========================================
+        # DISABLE HTTPS-FIRST MODE & UPGRADES
+        # ==========================================
+        chrome_options.add_argument(
+            "--disable-features=HttpsUpgrades,HttpsFirstBalancedModeAutoEnable,"
+            "HttpsFirstModeV2ForEngagedSites,HttpsOnlyMode"
+        )
+
+        # Forțează preferința internă a profilului de utilizator
+        chrome_options.add_experimental_option("prefs", {
+            "https_only_mode_enabled": False,
+            "ssl.client_certs.clear_on_exit": True
+        })
+
+        # ==========================================
+        # REDUCE AUTOMATION DETECTION
+        # ==========================================
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option("useAutomationExtension", False)
+
         print("Initializing Chrome WebDriver...")
-        return webdriver.Chrome(options=chrome_options)
+        # INSTANȚIEREA SE FACE DUPĂ CE TOATE OPȚIUNILE AU FOST CONFIGURATE
+        driver = webdriver.Chrome(options=chrome_options)
+
+        # ==========================================
+        # REMOVE webdriver FLAG
+        # ==========================================
+        driver.execute_script(
+            """
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => undefined
+            })
+            """
+        )
+        return driver
+
     elif browser.lower() == 'firefox':
         firefox_options = FirefoxOptions()
-        firefox_options.set_preference("general.useragent.override", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36")
+
+        firefox_options.set_preference(
+            "general.useragent.override",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+        )
+
+        # ==========================================
+        # IGNORE INSECURE HTTP WARNINGS (Firefox)
+        # ==========================================
+        firefox_options.accept_insecure_certs = True
+        firefox_options.set_preference("security.enterprise_roots.enabled", True)
+        firefox_options.set_preference("network.stricttransportsecurity.preloadlist", False)
+        
+        # Turn off HTTPS-Only Mode in Firefox
+        firefox_options.set_preference("dom.security.https_only_mode", False)
+        firefox_options.set_preference("dom.security.https_only_mode_ever_enabled", False)
+
         print("Initializing Firefox WebDriver...")
         return webdriver.Firefox(options=firefox_options)
+
     else:
         raise ValueError("Unsupported browser! Choose 'chrome' or 'firefox'.")
+
     
 def create_driver(browser='chrome'):
     ua = UserAgent()
@@ -140,6 +211,46 @@ def create_driver_with_proxy(browser='chrome'):
 
     return driver
 
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+
+def bypass_insecure_warning(driver, timeout=3):
+    """
+    Handles Chrome SSL interstitial:
+    'Your connection is not private' / 'Continue to site'
+    """
+
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: "chrome-error" in d.current_url
+            or "Your connection is not private" in d.page_source
+        )
+    except TimeoutException:
+        return
+
+    try:
+        # Method 1: direct button click (works on many Chrome versions)
+        driver.execute_script("""
+            const buttons = document.querySelectorAll('button, input, a');
+            for (let b of buttons) {
+                const txt = (b.innerText || b.value || '').toLowerCase();
+                if (txt.includes('proceed') ||
+                    txt.includes('continue to site') ||
+                    txt.includes('advanced')) {
+                    b.click();
+                }
+            }
+        """)
+    except Exception:
+        pass
+
+    try:
+        # Method 2: keyboard bypass fallback
+        body = driver.find_element("tag name", "body")
+        body.send_keys("thisisunsafe")
+    except Exception:
+        pass
+
 def scrape_all_links(url, browser='chrome', end_month=None, end_year=None, delay_range=(3, 5)):
     """ 
     Scrapes all article links from the given URL until the specified end_month and end_year are reached.
@@ -157,6 +268,7 @@ def scrape_all_links(url, browser='chrome', end_month=None, end_year=None, delay
     try:
         driver = get_browser_driver(browser)  # Initialize WebDriver
         driver.get(url)
+        bypass_insecure_warning(driver)
         all_links = set()
         base_url = "http://en.kremlin.ru"
         
@@ -211,6 +323,7 @@ def scrape_all_links(url, browser='chrome', end_month=None, end_year=None, delay
             
             # Load new URL instead of clicking 'Previous' button
             driver.get(url)
+            bypass_insecure_warning(driver)
             logging.info("Navigated to next page: %s", url)
 
     except Exception as e:
@@ -236,26 +349,27 @@ def fetch_page_with_retry(url, driver, stop_event, retries=3, delay=1):
     - str: The page source if successful, None otherwise.
     """
     for attempt in range(retries):
-        if stop_event.is_set():  # Check if scraping should stop
+        if stop_event is not None and stop_event.is_set():
             logging.info("Stopping fetch_page_with_retry as requested by user.")
-            return None  # Return None or handle accordingly if scraping is stopped
+            return None
 
         try:
             driver.get(url)
-            time.sleep(delay)  # Stagger requests to avoid overwhelming the server
+            bypass_insecure_warning(driver)
+            time.sleep(delay)
             return driver.page_source
         except Exception as e:
             logging.error(f"Attempt {attempt + 1} failed for {url}: {e}")
-            time.sleep(delay * (attempt + 1))  # Exponential backoff
+            time.sleep(delay * (attempt + 1))
 
     return None
-
 # Function to scrape content from each individual page, focusing on specific elements
 def scrape_individual_page(url, browser="chrome", stop_event=None):
     if stop_event and stop_event.is_set():
         return None
 
     driver = get_browser_driver(browser)
+    bypass_insecure_warning(driver)
     try:
         html = fetch_page_with_retry(url, driver, stop_event)
         if not html or (stop_event and stop_event.is_set()):

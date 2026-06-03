@@ -41,7 +41,7 @@ if st.button("Stop Scraping"):
     stop_event.set()  # Signal to stop scraping
 
 # Save progress after stopping or completion
-if stop_event.is_set() or st.session_state.scraped_data:
+if stop_event and stop_event.is_set() or st.session_state.scraped_data:
     json_data = json.dumps(st.session_state.scraped_data, ensure_ascii=False, indent=4)
     with open("scraped_content.json", "w", encoding='utf-8') as f:
         f.write(json_data)
@@ -59,53 +59,70 @@ if "scraped_data" in st.session_state and len(st.session_state.scraped_data) > 0
 
 # Section for scraping from a URL
 if option == "Scrape from URL":
-    url = st.text_input("Enter a website URL:", value="http://en.kremlin.ru/events/president/transcripts")  # Default URL
+    url = st.text_input(
+        "Enter a website URL:",
+        value="http://en.kremlin.ru/events/president/transcripts/page/1"
+    )
 
-    # Scrape Site button for URL input
     if st.button("Scrape Site"):
-        if url:  # Check if a URL was provided
-            stop_event.clear()  # Reset stop event before starting new scrape
+        if url:
+            stop_event.clear()
+
+            st.session_state.scraped_data = []
+            st.session_state.saved_dom_content = ""
+
             st.write(f"Scraping the website using {browser_choice}...")
             st.write("Extracting links to individual transcripts...")
 
-            # Scrape links up to the specified month and year
-            article_links = scrape_all_links(url, browser=browser_choice.lower(), end_month=end_month, end_year=end_year)
+            article_links = scrape_all_links(
+                url,
+                browser=browser_choice.lower(),
+                end_month=end_month,
+                end_year=end_year
+            )
 
             logging.info("Article links found: %s", article_links)
 
-            if article_links:  # Check if any links were found
+            if article_links:
                 st.write(f"Found {len(article_links)} transcript links.")
                 st.session_state.article_links = article_links
 
-                # Display the list of links in a collapsible expander
                 with st.expander("View Transcript Links"):
                     for link in article_links:
                         st.write(link)
 
-                # Use ThreadPoolExecutor for concurrent scraping of individual pages
                 with ThreadPoolExecutor(max_workers=3) as executor:
-                    future_to_link = {executor.submit(scrape_individual_page, link, browser_choice.lower()): link for link in article_links}
+                    future_to_link = {
+                        executor.submit(
+                            scrape_individual_page,
+                            link,
+                            browser_choice.lower(),
+                            stop_event
+                        ): link
+                        for link in article_links
+                    }
 
                     for future in as_completed(future_to_link):
-                        if stop_event.is_set():
+                        if stop_event and stop_event.is_set():
                             logging.info("Stopping scraping as requested by user.")
-                            break  # Exit if scraping is stopped
+                            break
 
                         link = future_to_link[future]
                         try:
                             transcript_data = future.result()
+                            if not transcript_data:
+                                continue
+
                             title = transcript_data.get("title", "No Title")
                             summary = transcript_data.get("summary", "No Summary")
                             content = transcript_data.get("content", "No Content")
 
-                            # Append the transcript's data as a dictionary to the scraped_data list
                             st.session_state.scraped_data.append({
                                 "title": title,
                                 "summary": summary,
                                 "content": content
                             })
 
-                            # Display the cleaned transcript in an expander
                             with st.expander(f"View Transcript Content - {title}"):
                                 st.subheader(f"Transcript: {title}")
                                 st.write(f"**Summary:** {summary}")
@@ -115,7 +132,16 @@ if option == "Scrape from URL":
                             logging.error(f"Error scraping {link}: {e}")
                             st.write(f"Error scraping {link}: {e}")
 
-                logging.info("Scraping session completed. Total links collected: %d", len(st.session_state.scraped_data))
+                st.session_state.saved_dom_content = "\n\n".join(
+                    item.get("content", "")
+                    for item in st.session_state.scraped_data
+                    if item.get("content")
+                )
+
+                logging.info(
+                    "Scraping session completed. Total links collected: %d",
+                    len(st.session_state.scraped_data)
+                )
             else:
                 st.warning("No valid URLs found from the provided base URL.")
         else:
@@ -152,7 +178,7 @@ elif option == "Upload .txt File":
                 }
 
                 for future in as_completed(future_to_link):
-                    if stop_event.is_set():
+                    if stop_event and stop_event.is_set():
                         logging.info("Stopping scraping as requested by user.")
                         break  # Exit the loop if scraping is stopped
 
